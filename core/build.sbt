@@ -15,22 +15,4 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
   */
-lazy val default = Seq(
-  version := "0.0.1",
-  organization := "bsp",
-  scalaVersion := "2.13.2",
-  scalacOptions := Seq("-deprecation"),
-  libraryDependencies ++= Seq(
-    "dev.zio" %% "zio" % "1.0.0-RC21-2",
-    "io.github.neurodyne" %% "zio-arrow" % "0.2.1",
-    "org.slf4j" % "slf4j-api" % "1.7.25",
-    "org.slf4j" % "slf4j-simple" % "1.7.25",
-    "org.scalatest" %% "scalatest" % "3.2.0" % "test"
-  )
-)
-
-lazy val common = (project in file("common")).settings(default)
-
-lazy val core = (project in file("core")).settings(default)
-
-lazy val all = (project in file(".")).aggregate(common, core)
+name := "bsp"
