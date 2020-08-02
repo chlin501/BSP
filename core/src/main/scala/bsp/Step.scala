@@ -17,47 +17,42 @@
   */
 package bsp
 
+import zio._
 import zio.arrow.ZArrow
 
-trait Step[I, O, T[_, _]] {
+trait Step[I, O, T[_, _], T1[_]] {
 
-  def |[O1](next: Step[O, O1, T]): Step[I, O1, T]
+  trait StepResult[T1[_]] {
+    def get: T1[_]
+  }
+
+  def |[O1](next: Step[O, O1, T, T1]): Step[I, O1, T, T1]
 
   def underlying: T[I, O]
+
+  def run(in: I): StepResult[T1]
 
 }
 object Step {
 
   type Z[I, O] = ZArrow[Any, I, O]
+  type ZO[O] = IO[Any, O]
 
-  case class ZIOStep[I, O](arrow: Z[I, O]) extends Step[I, O, Z] {
+  case class ZIOStep[I, O](arrow: Z[I, O]) extends Step[I, O, Z, ZO] {
 
-    override def |[O1](next: Step[O, O1, Z]): Step[I, O1, Z] =
+    case class ZIOResult[O](io: ZO[O]) extends StepResult[ZO] {
+      def get: ZO[O] = io
+    }
+
+    override def |[O1](next: Step[O, O1, Z, ZO]): Step[I, O1, Z, ZO] =
       ZIOStep[I, O1](arrow >>> next.underlying)
 
     override def underlying: Z[I, O] = arrow
 
+    override def run(in: I): StepResult[ZO] = ZIOResult[O](arrow.run(in))
+
   }
 
-}
-/*
-class Step[I, O](k: Kleisli[Result, I, O]) {
-
-  /**
- * Form a new computation by taking in input I, and produce output O1.
- */
-  def |[O1](next: Step[O, O1]) = new Step[I, O1](
-    k andThen sync() andThen next.kleisli
-  )
-
-  protected[bsp] def kleisli = k
-
-  def run(in: I) = k.run(in)
-
-  protected[bsp] def sync() = Kleisli[Result, O, O]( (o: O) => {
-    /* TODO: barrier sync() operation */
-    Success(o)
-  })
+  def zioStep[I, O](f: I => O): ZIOStep[I, O] = ZIOStep[I, O](ZArrow(f))
 
 }
- */
